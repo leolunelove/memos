@@ -1,5 +1,7 @@
 # Memos
 
+[Open Memos](https://leolunelove.github.io/memos/)
+
 A simple voice recorder inspired by Voice Memos.
 
 - Choose your microphone.
