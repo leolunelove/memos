@@ -248,9 +248,9 @@ async function getEncoder(op){
   let wasmURL;
   try{
     let loaded=0;progress(op,'Loading MP4 exporter (first use)…',0);
-    const buffers=await Promise.all([0,1,2,3,4].map(async part=>{const response=await fetch(new URL(`ffmpeg-core.wasm.${part}`,document.baseURI),{signal:op.signal});if(!response.ok)throw new Error('Audio exporter could not load');const buffer=await response.arrayBuffer();loaded++;progress(op,`Loading MP4 exporter · ${loaded} of 5 parts`,loaded/5*100);return buffer;}));
+    const buffers=await Promise.all([0,1,2,3,4].map(async part=>{const response=await fetch(new URL(`vendor/ffmpeg/ffmpeg-core.wasm.${part}`,document.baseURI),{signal:op.signal});if(!response.ok)throw new Error('Audio exporter could not load');const buffer=await response.arrayBuffer();loaded++;progress(op,`Loading MP4 exporter · ${loaded} of 5 parts`,loaded/5*100);return buffer;}));
     wasmURL=URL.createObjectURL(new Blob(buffers,{type:'application/wasm'}));progress(op,'Starting MP4 exporter…');
-    await abortable(encoder.load({coreURL:new URL('ffmpeg-core.js',document.baseURI).href,wasmURL}),op);check(op);ffmpeg=encoder;return encoder;
+    await abortable(encoder.load({coreURL:new URL('vendor/ffmpeg/ffmpeg-core.js',document.baseURI).href,wasmURL}),op);check(op);ffmpeg=encoder;return encoder;
   }catch(error){terminate();throw error;}finally{op.signal.removeEventListener('abort',terminate);if(wasmURL)URL.revokeObjectURL(wasmURL);}
 }
 function download(blob,title){const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=(title.replace(/[<>:"/\\|?*\x00-\x1f]/g,'-').trim()||'Recording')+'.mp4';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}

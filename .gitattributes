@@ -1,0 +1,2 @@
+# Keep bundled dependencies out of the project language breakdown.
+vendor/** linguist-vendored
