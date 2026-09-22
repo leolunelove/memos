@@ -4,12 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f7f8">
-  <title>Memos — Voice recorder</title>
+  <title>Memos</title>
+  <meta name="application-name" content="Memos">
+  <meta name="apple-mobile-web-app-title" content="Memos">
+  <meta property="og:site_name" content="Memos">
+  <meta property="og:title" content="Memos">
+  <meta name="twitter:title" content="Memos">
   <meta name="description" content="A simple space to record. Choose your microphone, capture a thought, and export it as MP4. Recordings stay on your device.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23f04445'/%3E%3Cpath d='M16 27v10m8-20v30m8-36v42m8-33v24m8-17v10' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css?v=refinement-1">
   <script src="./ffmpeg.js" defer></script>
-  <script src="./app.js" type="module"></script>
+  <script src="./app.js?v=refinement-1" type="module"></script>
 </head>
 <body>
 <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
@@ -22,6 +27,7 @@
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></symbol>
   <symbol id="i-play" viewBox="0 0 24 24"><path d="m9 5 11 7-11 7Z" fill="currentColor" stroke="none"/></symbol>
   <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14m8-14v14" stroke-width="4"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="m16 3 5 5-12 12-6 1 1-6ZM14 5l5 5"/></symbol>
   <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></symbol>
 </defs></svg>
 <div class="page">
@@ -38,18 +44,31 @@
     </aside>
     <section class="workspace">
       <div class="workspace-header">
-        <div class="recording-heading"><input id="title" aria-label="Recording name" value="New recording" maxlength="100" autocomplete="off" spellcheck="false"><p id="metadata">Not recorded yet</p></div>
+        <div class="recording-heading"><div class="title-row"><input id="title" aria-label="Recording name" value="Recording 1" maxlength="100" autocomplete="off" spellcheck="false"><button id="rename" class="icon-button" aria-label="Rename recording" title="Rename recording"><svg><use href="#i-pencil"/></svg></button></div><p id="metadata">Not recorded yet</p></div>
         <button id="export" class="export-button" disabled><svg><use href="#i-download"/></svg><span>Export MP4</span></button>
       </div>
       <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+      <div id="processing" class="processing" hidden>
+        <div class="processing-copy"><span id="processing-label" role="status" aria-live="polite">Preparing audio…</span><progress id="processing-progress" max="100" aria-label="Audio processing progress"></progress></div>
+        <button id="cancel-process" class="text-button">Cancel</button>
+      </div>
       <div class="recorder">
         <div id="state-label" class="state-label">Ready to record</div>
         <div id="time" class="time" aria-label="Recording duration">00:00<span>.00</span></div>
         <div class="waveform-area">
           <canvas id="waveform" aria-label="Audio waveform" role="img"></canvas>
           <div class="playhead" aria-hidden="true"></div>
+          <div id="trim-selection" class="trim-selection" hidden aria-hidden="true"></div>
+          <div id="trim-handles" class="trim-handles" hidden>
+            <input id="trim-start" type="range" min="0" max="1" step="0.01" value="0" aria-label="Trim start">
+            <input id="trim-end" type="range" min="0" max="1" step="0.01" value="1" aria-label="Trim end">
+          </div>
           <input id="seek" type="range" min="0" max="1" step="0.01" value="0" aria-label="Playback position" hidden>
           <div class="waveform-ticks" aria-hidden="true"><span id="tick-start">00:00</span><span id="tick-middle">00:00</span><span id="tick-end">00:00</span></div>
+        </div>
+        <div id="trim-panel" class="trim-panel" hidden>
+          <div class="trim-times"><span>Start <output id="trim-start-label">00:00.00</output></span><span id="trim-length"></span><span>End <output id="trim-end-label">00:00.00</output></span></div>
+          <div class="trim-actions"><span>Drag the handles · original kept</span><button id="trim-reset" class="text-button">Reset</button><button id="trim-cancel" class="text-button">Cancel</button><button id="trim-apply" class="small-button">Apply trim</button></div>
         </div>
         <div class="transport">
           <button id="pause" class="round-button secondary" aria-label="Pause recording" hidden><svg><use href="#i-pause"/></svg></button>
@@ -58,16 +77,29 @@
           <button id="forward" class="round-button skip" aria-label="Forward 10 seconds" hidden><span>↷</span><small>10</small></button>
           <button id="delete" class="round-button secondary delete-button" aria-label="Delete recording" hidden><svg><use href="#i-trash"/></svg></button>
         </div>
+        <div id="clip-actions" class="clip-actions" hidden><button id="quick-new" class="text-button"><svg><use href="#i-plus"/></svg>New recording</button><span aria-hidden="true">·</span><button id="trim-toggle" class="text-button" aria-expanded="false" aria-controls="trim-panel">Trim</button></div>
         <p id="recorder-hint" class="recorder-hint">Press record. Take your time.</p>
+      </div>
+      <div class="effects-row">
+        <label for="effect"><span aria-hidden="true">✦</span> Voice effect</label>
+        <select id="effect" aria-describedby="effect-hint" disabled>
+          <option value="none">Original</option>
+          <option value="tune">Light tune</option>
+          <option value="deep">Deep voice</option>
+          <option value="echo">Soft echo</option>
+        </select>
+        <span id="effect-hint">Try after recording</span>
       </div>
       <div class="input-panel">
         <div class="microphone-icon"><svg><use href="#i-mic"/></svg></div>
         <div class="microphone-field"><label for="microphone">MICROPHONE</label><div class="select-wrap"><select id="microphone" aria-describedby="mic-hint"><option value="">System default</option><option value="__enable">Choose a microphone…</option></select><svg><use href="#i-chevron"/></svg></div></div>
         <button id="refresh" class="icon-button" title="Refresh microphones" aria-label="Refresh microphones"><svg><use href="#i-refresh"/></svg></button>
       </div>
+      <div id="save-status" class="save-status" role="status" aria-live="polite" hidden></div>
       <div class="workspace-footer"><span id="mic-hint">Allow microphone access to choose an input.</span><span class="format-badge">MP4 AUDIO</span></div>
     </section>
   </main>
+  <p class="storage-note"><svg><use href="#i-lock"/></svg><span>Saved in this browser. No cloud backup. Export important recordings.</span></p>
 
 </div>
 <dialog id="delete-dialog"><form method="dialog"><div class="dialog-icon"><svg><use href="#i-trash"/></svg></div><h2>Delete this recording?</h2><p id="delete-message">This recording will be removed from this browser.</p><div class="dialog-actions"><button value="cancel">Keep recording</button><button value="delete" class="danger">Delete</button></div></form></dialog>
