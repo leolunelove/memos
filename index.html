@@ -7,9 +7,9 @@
   <title>Memos — Voice recorder</title>
   <meta name="description" content="A simple space to record. Choose your microphone, capture a thought, and export it as MP4. Recordings stay on your device.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23f04445'/%3E%3Cpath d='M16 27v10m8-20v30m8-36v42m8-33v24m8-17v10' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css?v=effects-1">
   <script src="./ffmpeg.js" defer></script>
-  <script src="./app.js" type="module"></script>
+  <script src="./app.js?v=effects-1" type="module"></script>
 </head>
 <body>
 <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
@@ -59,6 +59,16 @@
           <button id="delete" class="round-button secondary delete-button" aria-label="Delete recording" hidden><svg><use href="#i-trash"/></svg></button>
         </div>
         <p id="recorder-hint" class="recorder-hint">Press record. Take your time.</p>
+      </div>
+      <div class="effects-row">
+        <label for="effect"><span aria-hidden="true">✦</span> Voice effect</label>
+        <select id="effect" aria-describedby="effect-hint" disabled>
+          <option value="none">Original</option>
+          <option value="tune">Light tune</option>
+          <option value="deep">Deep voice</option>
+          <option value="echo">Soft echo</option>
+        </select>
+        <span id="effect-hint">Try after recording</span>
       </div>
       <div class="input-panel">
         <div class="microphone-icon"><svg><use href="#i-mic"/></svg></div>

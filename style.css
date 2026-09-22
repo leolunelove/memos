@@ -2,3 +2,6 @@
 
 /* Keep control labels readable on compact screens. */
 .recording-heading p{font-size:12px;letter-spacing:.5px;font-weight:400}.microphone-field label{font-size:12px;letter-spacing:.8px}.waveform-ticks,.workspace-footer{font-size:12px}.format-badge{font-size:11px}.select-wrap select{font-size:14px}.export-button,.export-button span{font-size:14px}.recorder-hint,.state-label,.primary-control>span{font-size:14px}.local-note{font-size:12px}
+
+/* A small, optional treatment for playback and export. */
+.effects-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:0 0 12px;font-size:12px;color:#858791;min-height:30px}.effects-row label{display:flex;gap:6px;align-items:center;white-space:nowrap;color:#737681}.effects-row label span{color:var(--red);font-size:16px}.effects-row select{max-width:145px;min-height:32px;border:1px solid #e9e9ee;border-radius:7px;background:#fafafb;color:#454852;padding:5px 25px 5px 8px;font-size:12px;cursor:pointer}.effects-row select:disabled{cursor:default;opacity:.55}.effects-row>span{margin-left:auto;font-size:11px}.effects-row[data-active="true"] select{border-color:#f0c3c4;background:#fff7f7;color:#be3b40}@media(max-width:480px){.effects-row{gap:7px}.effects-row>span{flex-basis:100%;margin-left:0}.effects-row select{margin-left:auto}}

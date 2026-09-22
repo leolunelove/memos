@@ -1,7 +1,9 @@
+import { encodeWav } from './effects.js';
 const $ = id => document.getElementById(id);
-const ui = Object.fromEntries(['new','count','recording-list','empty','title','metadata','export','notice','state-label','time','waveform','seek','tick-start','tick-middle','tick-end','pause','back','record','play','forward','delete','control-label','recorder-hint','microphone','refresh','mic-hint','audio','delete-dialog','delete-message'].map(id=>[id,$(id)]));
+const ui = Object.fromEntries(['new','count','recording-list','empty','title','metadata','export','notice','state-label','time','waveform','seek','tick-start','tick-middle','tick-end','pause','back','record','play','forward','delete','control-label','recorder-hint','microphone','refresh','mic-hint','audio','delete-dialog','delete-message','effect','effect-hint'].map(id=>[id,$(id)]));
 let clips=[], selected=null, mode='idle', recorder=null, stream=null, context=null, analyser=null, chunks=[], peaks=[], db=null;
 let startedAt=0, elapsed=0, duration=0, animation=0, sampleAt=0, recordingName='', microphoneName='', acquiring=false, exporting=false, ffmpeg=null, ffmpegLoading=null;
+let applyingEffect=false, effectAudio=null;
 const canvas=ui.waveform, ctx=canvas.getContext('2d');
 const clock = (seconds, fraction=false) => {
   const ms=Math.floor(Math.max(0,seconds||0)*100); const mins=Math.floor(ms/6000); const secs=Math.floor(ms/100)%60;
@@ -25,32 +27,35 @@ async function openStorage(){
 function renderList(){
   ui['recording-list'].replaceChildren();ui.count.textContent=clips.length;ui.empty.hidden=clips.length>0;
   for(const clip of clips){
-    const button=document.createElement('button');button.className='recording-item'+(selected?.id===clip.id?' selected':'');button.disabled=active()||acquiring||exporting;button.setAttribute('aria-pressed',String(selected?.id===clip.id));
+    const button=document.createElement('button');button.className='recording-item'+(selected?.id===clip.id?' selected':'');button.disabled=active()||acquiring||exporting||applyingEffect;button.setAttribute('aria-pressed',String(selected?.id===clip.id));
     const title=document.createElement('strong');title.textContent=clip.title;
     const meta=document.createElement('span');meta.className='recording-meta';const date=document.createElement('span');date.textContent=dateLabel(clip.created);const len=document.createElement('span');len.textContent=clock(clip.duration);meta.append(date,len);button.append(title,meta);button.addEventListener('click',()=>selectClip(clip));ui['recording-list'].append(button);
   }
 }
 function resetPlayback(){ui.audio.pause();ui.audio.removeAttribute('src');ui.audio.load();cancelAnimationFrame(animation);}
 function selectClip(clip){
-  if(active()||acquiring||exporting)return;resetPlayback();selected=clip;mode='playback';duration=clip.duration;ui.audio.src=clip.url;ui.title.value=clip.title;ui.metadata.textContent=new Intl.DateTimeFormat(undefined,{month:'long',day:'numeric',hour:'numeric',minute:'2-digit'}).format(clip.created);
+  if(active()||acquiring||exporting||applyingEffect)return;resetPlayback();clearEffectAudio();selected=clip;mode='playback';duration=clip.duration;ui.audio.src=clip.url;ui.title.value=clip.title;ui.metadata.textContent=new Intl.DateTimeFormat(undefined,{month:'long',day:'numeric',hour:'numeric',minute:'2-digit'}).format(clip.created);
   ui.seek.max=clip.duration;ui.seek.value=0;displayTime(0);notice('');renderList();updateControls();drawWave();
 }
 function newRecording(){
-  if(active()||acquiring||exporting)return;resetPlayback();selected=null;mode='idle';duration=0;peaks=[];ui.title.value='New recording';ui.metadata.textContent='Not recorded yet';notice('');displayTime(0);renderList();updateControls();drawWave();
+  if(active()||acquiring||exporting||applyingEffect)return;resetPlayback();clearEffectAudio();selected=null;mode='idle';duration=0;peaks=[];ui.title.value='New recording';ui.metadata.textContent='Not recorded yet';notice('');displayTime(0);renderList();updateControls();drawWave();
 }
 function updateControls(){
   const isActive=active(), playback=mode==='playback';
-  ui.new.disabled=isActive||acquiring||exporting;ui.title.disabled=isActive||acquiring||exporting;
+  ui.effect.value=selected?.effect||'none';ui.effect.disabled=!playback||exporting||applyingEffect;
+  ui.effect.closest('.effects-row').dataset.active=String(ui.effect.value!=='none');
+  ui['effect-hint'].textContent=applyingEffect?'Applying…':!playback?'Try after recording':ui.effect.value==='none'?'Playback & export':'Original kept';
+  ui.new.disabled=isActive||acquiring||exporting||applyingEffect;ui.title.disabled=isActive||acquiring||exporting||applyingEffect;
   ui.record.hidden=playback;ui.record.disabled=acquiring||mode==='stopping';ui.record.classList.toggle('recording',isActive);ui.record.setAttribute('aria-label',isActive?'Stop recording':'Start recording');
-  ui.play.hidden=!playback;ui.play.disabled=exporting;ui.pause.hidden=!isActive||mode==='stopping';ui.pause.setAttribute('aria-label',mode==='paused'?'Resume recording':'Pause recording');ui.pause.innerHTML=`<svg><use href="#i-${mode==='paused'?'play':'pause'}"/></svg>`;
-  ui.back.hidden=!playback;ui.forward.hidden=!playback;ui.delete.hidden=!playback;ui.delete.disabled=exporting;ui.back.disabled=exporting;ui.forward.disabled=exporting;
-  ui.export.disabled=!playback||exporting;ui.microphone.disabled=isActive||acquiring||exporting;ui.refresh.disabled=isActive||acquiring||exporting;ui.seek.hidden=!playback;ui.seek.disabled=exporting;
-  ui['state-label'].textContent=acquiring?'Waiting for microphone…':mode==='recording'?'Recording':mode==='paused'?'Paused':mode==='stopping'?'Saving recording…':playback?(ui.audio.paused?'Ready to listen':'Playing'):'Ready to record';
+  ui.play.hidden=!playback;ui.play.disabled=exporting||applyingEffect;ui.pause.hidden=!isActive||mode==='stopping';ui.pause.setAttribute('aria-label',mode==='paused'?'Resume recording':'Pause recording');ui.pause.innerHTML=`<svg><use href="#i-${mode==='paused'?'play':'pause'}"/></svg>`;
+  ui.back.hidden=!playback;ui.forward.hidden=!playback;ui.delete.hidden=!playback;ui.delete.disabled=exporting||applyingEffect;ui.back.disabled=exporting||applyingEffect;ui.forward.disabled=exporting||applyingEffect;
+  ui.export.disabled=!playback||exporting||applyingEffect;ui.microphone.disabled=isActive||acquiring||exporting||applyingEffect;ui.refresh.disabled=isActive||acquiring||exporting||applyingEffect;ui.seek.hidden=!playback;ui.seek.disabled=exporting||applyingEffect;
+  ui['state-label'].textContent=applyingEffect?'Applying voice effect…':acquiring?'Waiting for microphone…':mode==='recording'?'Recording':mode==='paused'?'Paused':mode==='stopping'?'Saving recording…':playback?(ui.audio.paused?'Ready to listen':'Playing'):'Ready to record';
   ui['state-label'].classList.toggle('active',mode==='recording');ui['control-label'].textContent=acquiring?'Allow access':isActive?'Stop':playback?(ui.audio.paused?'Play':'Pause'):'Record';
   ui.play.setAttribute('aria-label',ui.audio.paused?'Play recording':'Pause playback');ui.play.innerHTML=`<svg><use href="#i-${ui.audio.paused?'play':'pause'}"/></svg>`;
   ui['recorder-hint'].textContent=isActive?(mode==='paused'?'Pick up where you left off.':'Listening. Make it yours.'):playback?`${clock(duration)} · ${selected?.microphone||'Audio recording'}`:'Press record. Take your time.';
   document.querySelector('.playhead').style.left=playback?'0%':'50%';
-  for(const b of ui['recording-list'].children)b.disabled=isActive||acquiring||exporting;
+  for(const b of ui['recording-list'].children)b.disabled=isActive||acquiring||exporting||applyingEffect;
 }
 async function enumerateMicrophones(){
   if(!navigator.mediaDevices?.enumerateDevices)return;
@@ -72,7 +77,7 @@ async function enableMicrophones(){
 }
 function releaseMicrophone(){stream?.getTracks().forEach(t=>t.stop());stream=null;context?.close().catch(()=>{});context=null;analyser=null;}
 async function startRecording(){
-  if(acquiring||active()||exporting)return;
+  if(acquiring||active()||exporting||applyingEffect)return;
   if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){notice('Recording is unavailable in this browser. Open this site in a current browser over HTTPS.');return;}
   notice('');acquiring=true;updateControls();
   try{
@@ -114,7 +119,7 @@ function drawWave(){
   const width=canvas.clientWidth,height=canvas.clientHeight;if(!width||!height)return;const ratio=window.devicePixelRatio||1;
   if(canvas.width!==Math.round(width*ratio)||canvas.height!==Math.round(height*ratio)){canvas.width=Math.round(width*ratio);canvas.height=Math.round(height*ratio);}
   ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,width,height);
-  const playback=mode==='playback';const source=playback?selected?.peaks||[]:peaks;const count=Math.max(1,Math.floor(width/5));const progress=playback?Math.min(1,ui.audio.currentTime/(duration||1)):0;
+  const playback=mode==='playback';const source=playback?effectAudio?.peaks||selected?.peaks||[]:peaks;const count=Math.max(1,Math.floor(width/5));const progress=playback?Math.min(1,ui.audio.currentTime/(duration||1)):0;
   for(let i=0;i<count;i++){
     let value=0;
     if(playback&&source.length){const from=Math.floor(i*source.length/count),to=Math.max(from+1,Math.floor((i+1)*source.length/count));for(let j=from;j<to&&j<source.length;j++)value=Math.max(value,source[j]);}
@@ -126,12 +131,52 @@ function drawWave(){
   document.querySelector('.playhead').style.left=playback?`${progress*100}%`:'50%';
 }
 async function togglePlayback(){
-  if(!selected||exporting)return;
-  if(ui.audio.paused){if(ui.audio.currentTime>=duration-.02)ui.audio.currentTime=0;try{await ui.audio.play();notice('');}catch{notice('Playback could not start. Try pressing play again.');}}else ui.audio.pause();
+  if(!selected||exporting||applyingEffect)return;
+  if(ui.audio.paused){try{await prepareEffect();}catch(error){effectError(error);return;}if(ui.audio.currentTime>=duration-.02)ui.audio.currentTime=0;try{await ui.audio.play();notice('');}catch{notice('Playback could not start. Try pressing play again.');}}else ui.audio.pause();
   updateControls();
 }
 function playbackTick(){if(mode!=='playback')return;displayTime(ui.audio.currentTime);ui.seek.value=ui.audio.currentTime;drawWave();if(!ui.audio.paused)animation=requestAnimationFrame(playbackTick);}
 function seekTo(value){if(!selected)return;ui.audio.currentTime=Math.max(0,Math.min(duration,value));playbackTick();}
+
+function clearEffectAudio(){if(effectAudio)URL.revokeObjectURL(effectAudio.url);effectAudio=null;}
+function effectError(error){console.error('Voice effect failed:',error);notice('This effect could not be applied. Your original is safe. Try again or choose Original.');}
+function processVoice(samples,sampleRate,effect){
+  return new Promise((resolve,reject)=>{
+    const worker=new Worker(new URL('./effects.js',import.meta.url),{type:'module'});
+    const timer=setTimeout(()=>{worker.terminate();reject(new Error('Voice effect timed out'));},120000);
+    const finish=()=>{clearTimeout(timer);worker.terminate();};
+    worker.onmessage=({data})=>{finish();data.error?reject(new Error(data.error)):resolve(data.samples);};
+    worker.onerror=event=>{event.preventDefault();finish();reject(new Error('Voice effect could not load'));};
+    worker.postMessage({samples,sampleRate,effect},[samples.buffer]);
+  });
+}
+async function prepareEffect(){
+  const clip=selected,effect=clip.effect||'none';
+  if(effect==='none')return clip.blob;
+  if(effectAudio?.id===clip.id&&effectAudio.effect===effect)return effectAudio.blob;
+  applyingEffect=true;ui.audio.pause();updateControls();let decoder;
+  try{
+    decoder=new(window.AudioContext||window.webkitAudioContext)({sampleRate:24000});
+    const buffer=await decoder.decodeAudioData(await clip.blob.arrayBuffer());
+    const samples=new Float32Array(buffer.length);
+    for(let ch=0;ch<buffer.numberOfChannels;ch++){const channel=buffer.getChannelData(ch);for(let i=0;i<samples.length;i++)samples[i]+=channel[i]/buffer.numberOfChannels;}
+    const processed=await processVoice(samples,buffer.sampleRate,effect);
+    const blob=encodeWav(processed,buffer.sampleRate),wave=[];
+    for(let i=0;i<processed.length;i+=Math.round(buffer.sampleRate*.05)){let sum=0,count=0;for(let j=i;j<Math.min(processed.length,i+buffer.sampleRate*.05);j++){sum+=processed[j]*processed[j];count++;}wave.push(Math.min(1,Math.sqrt(sum/count)*4));}
+    clearEffectAudio();effectAudio={id:clip.id,effect,blob,url:URL.createObjectURL(blob),peaks:wave};
+    ui.audio.src=effectAudio.url;duration=processed.length/buffer.sampleRate;ui.seek.max=duration;ui.seek.value=0;displayTime(0);drawWave();return blob;
+  }finally{await decoder?.close().catch(()=>{});applyingEffect=false;updateControls();}
+}
+async function changeEffect(){
+  if(!selected||active()||exporting||applyingEffect)return;
+  const clip=selected,previous=clip.effect||'none';clip.effect=ui.effect.value;ui.audio.pause();notice('');
+  try{
+    if(clip.effect==='none'){clearEffectAudio();ui.audio.src=clip.url;duration=clip.duration;ui.seek.max=duration;ui.seek.value=0;displayTime(0);drawWave();}
+    else await prepareEffect();
+    await persist(clip);
+  }catch(error){clip.effect=previous;effectError(error);}finally{updateControls();}
+}
+
 async function getEncoder(){
   if(ffmpeg)return ffmpeg;
   if(ffmpegLoading)return ffmpegLoading;
@@ -147,36 +192,37 @@ async function getEncoder(){
 }
 function download(blob,title){const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=(title.replace(/[<>:"/\\|?*\x00-\x1f]/g,'-').trim()||'Recording')+'.mp4';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 async function exportMP4(){
-  if(!selected||exporting)return;const clip=selected;exporting=true;ui.audio.pause();updateControls();notice('');const label=ui.export.querySelector('span');let encoder;
+  if(!selected||exporting||applyingEffect)return;const clip=selected;exporting=true;ui.audio.pause();updateControls();notice('');const label=ui.export.querySelector('span');let encoder;
   try{
-    let result=clip.blob;
-    if(!clip.mime.includes('mp4')){
+    let result=await prepareEffect();
+    if(!result.type.includes('mp4')){
       label.textContent='Preparing…';encoder=await getEncoder();label.textContent='Exporting…';
       const onProgress=({progress})=>{label.textContent=`Exporting ${Math.min(99,Math.max(0,Math.round(progress*100)))}%`;};encoder.on('progress',onProgress);
-      try{await encoder.writeFile('input-audio',new Uint8Array(await clip.blob.arrayBuffer()));const code=await encoder.exec(['-i','input-audio','-vn','-c:a','aac','-b:a','128k','-movflags','+faststart','-f','mp4','output.mp4']);if(code!==0)throw new Error('MP4 encoding failed');const output=await encoder.readFile('output.mp4');result=new Blob([output],{type:'audio/mp4'});}finally{encoder.off('progress',onProgress);await encoder.deleteFile('input-audio').catch(()=>{});await encoder.deleteFile('output.mp4').catch(()=>{});}
+      try{await encoder.writeFile('input-audio',new Uint8Array(await result.arrayBuffer()));const code=await encoder.exec(['-i','input-audio','-vn','-c:a','aac','-b:a','128k','-movflags','+faststart','-f','mp4','output.mp4']);if(code!==0)throw new Error('MP4 encoding failed');const output=await encoder.readFile('output.mp4');result=new Blob([output],{type:'audio/mp4'});}finally{encoder.off('progress',onProgress);await encoder.deleteFile('input-audio').catch(()=>{});await encoder.deleteFile('output.mp4').catch(()=>{});}
     }
-    download(result,clip.title);notice('MP4 is ready. Your download has started.',true);
+    download(result,clip.title+(clip.effect&&clip.effect!=='none'?' — '+ui.effect.selectedOptions[0].textContent:''));notice('MP4 is ready. Your download has started.',true);
   }catch(error){console.error('MP4 export failed:',error);if(encoder){encoder.terminate();ffmpeg=null;}notice('MP4 export could not finish. Your recording is still here. Try exporting again, or use a desktop browser for a long recording.');}
   finally{exporting=false;label.textContent='Export MP4';updateControls();}
 }
 ui.record.addEventListener('click',()=>active()?stopRecording():startRecording());ui.pause.addEventListener('click',togglePause);ui.new.addEventListener('click',newRecording);ui.play.addEventListener('click',togglePlayback);ui.export.addEventListener('click',exportMP4);ui.refresh.addEventListener('click',enableMicrophones);
+ui.effect.addEventListener('change',changeEffect);
 ui.microphone.addEventListener('change',()=>{if(ui.microphone.value==='__enable'){ui.microphone.value='';enableMicrophones();}else notice('');});
 ui.title.addEventListener('change',async()=>{const title=ui.title.value.trim()||'New recording';ui.title.value=title;if(selected){selected.title=title;renderList();await persist(selected);}});
 ui.back.addEventListener('click',()=>seekTo(ui.audio.currentTime-10));ui.forward.addEventListener('click',()=>seekTo(ui.audio.currentTime+10));ui.seek.addEventListener('input',()=>seekTo(Number(ui.seek.value)));
-ui.audio.addEventListener('play',()=>{cancelAnimationFrame(animation);updateControls();playbackTick();});ui.audio.addEventListener('pause',()=>{if(mode==='playback'){updateControls();playbackTick();}});ui.audio.addEventListener('ended',()=>{updateControls();playbackTick();});ui.audio.addEventListener('loadedmetadata',()=>{if(selected&&Number.isFinite(ui.audio.duration)&&ui.audio.duration>0){duration=ui.audio.duration;ui.seek.max=duration;drawWave();}});
+ui.audio.addEventListener('play',()=>{cancelAnimationFrame(animation);updateControls();playbackTick();});ui.audio.addEventListener('pause',()=>{if(mode==='playback'){updateControls();playbackTick();}});ui.audio.addEventListener('ended',()=>{updateControls();playbackTick();});ui.audio.addEventListener('loadedmetadata',()=>{if(selected&&!applyingEffect&&Number.isFinite(ui.audio.duration)&&ui.audio.duration>0){duration=ui.audio.duration;ui.seek.max=duration;drawWave();}});
 ui.audio.addEventListener('error',()=>{if(selected&&ui.audio.getAttribute('src'))notice('This browser cannot play this recording. You can still export it as MP4.');});
 ui.delete.addEventListener('click',()=>{ui.audio.pause();ui['delete-message'].textContent=`“${selected.title}” will be removed from this browser. This cannot be undone.`;ui['delete-dialog'].showModal();});
 ui['delete-dialog'].addEventListener('close',async()=>{
   if(ui['delete-dialog'].returnValue!=='delete'||!selected)return;const clip=selected;
   try{if(clip.persisted)await requestTransaction('delete',clip.id);clips=clips.filter(c=>c.id!==clip.id);newRecording();URL.revokeObjectURL(clip.url);}catch{notice('This recording could not be deleted. Try again.');}
 });
-window.addEventListener('beforeunload',event=>{if(active()||acquiring||exporting||clips.some(c=>!c.persisted)){event.preventDefault();event.returnValue='';}});
+window.addEventListener('beforeunload',event=>{if(active()||acquiring||exporting||applyingEffect||clips.some(c=>!c.persisted)){event.preventDefault();event.returnValue='';}});
 navigator.mediaDevices?.addEventListener('devicechange',()=>enumerateMicrophones().catch(()=>{}));new ResizeObserver(drawWave).observe(canvas);
 if(document.modelContext?.registerTool){
   const lifecycle=new AbortController();
   for(const tool of [
     {name:'list_recordings',title:'List recordings',description:'Read recordings saved in this browser, including their IDs, names, and durations.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:true},execute:async input=>{if(!input||Object.keys(input).length)throw new Error('Expected an empty object');return clips.map(({id,title,duration})=>({id,title,duration}));}},
-    {name:'select_recording',title:'Select a recording',description:'Open an existing recording in the player without starting playback or recording.',inputSchema:{type:'object',properties:{id:{type:'string'}},required:['id'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:true},execute:async input=>{if(!input||typeof input.id!=='string'||Object.keys(input).some(k=>k!=='id'))throw new Error('A recording ID is required');if(active()||acquiring||exporting)throw new Error('The recorder is busy');const clip=clips.find(c=>c.id===input.id);if(!clip)throw new Error('Recording not found');selectClip(clip);return {id:clip.id,title:clip.title,selected:true};}}
+    {name:'select_recording',title:'Select a recording',description:'Open an existing recording in the player without starting playback or recording.',inputSchema:{type:'object',properties:{id:{type:'string'}},required:['id'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:true},execute:async input=>{if(!input||typeof input.id!=='string'||Object.keys(input).some(k=>k!=='id'))throw new Error('A recording ID is required');if(active()||acquiring||exporting||applyingEffect)throw new Error('The recorder is busy');const clip=clips.find(c=>c.id===input.id);if(!clip)throw new Error('Recording not found');selectClip(clip);return {id:clip.id,title:clip.title,selected:true};}}
   ]){try{Promise.resolve(document.modelContext.registerTool(tool,{signal:lifecycle.signal})).catch(()=>{});}catch{}}
   window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true});
 }
