@@ -1,0 +1,5 @@
+Audio conversion uses @ffmpeg/ffmpeg 0.12.15 (MIT) and @ffmpeg/core 0.12.10 (GPL-2.0-or-later).
+Project and corresponding core build source: https://github.com/ffmpegwasm/ffmpeg.wasm/tree/main
+The core WebAssembly binary is split into five byte-for-byte parts for delivery and reassembled unmodified before use.
+MIT license: LICENSE.ffmpeg.txt
+GPL license: COPYING.GPLv2.txt
