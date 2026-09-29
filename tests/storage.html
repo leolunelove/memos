@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Memos storage checks</title><body><h1>Memos storage checks</h1><pre id="result">Running…</pre><script type="module">
+const out=document.getElementById('result'),lines=[];function assert(ok,msg){if(!ok)throw new Error(msg);lines.push('PASS '+msg);out.textContent=lines.join('\n');}
+// A unique test database prevents interference with real or other QA recordings.
+const suffix='-test-'+crypto.randomUUID(),nativeOpen=indexedDB.open.bind(indexedDB);indexedDB.open=(name,version)=>nativeOpen(name+suffix,version);
+const {RecordingStore,holdTake}=await import('../app/storage.js');
+const {createBackup,readBackup}=await import('../app/library.js');
+const store=new RecordingStore();try{
+ await store.open();const clip={id:'a',title:'测试录音',created:Date.now(),duration:1,effect:'none',enhance:false,peaks:[],blob:new Blob(['fixture'],{type:'audio/webm'})};await store.save(clip);
+ await store.save({...clip,deletedAt:Date.now()});assert((await store.get('a')).deletedAt>0,'soft deletion survives a fresh read');
+ await store.save(clip);assert(!(await store.get('a')).deletedAt,'restore removes tombstone');
+ await store.restoreMany([{...clip,id:'b'},{...clip,id:'c'}]);assert((await store.list()).length===3,'backup batch adds missing recordings');
+ let rejected=false;try{await store.restoreMany([{...clip,id:'d'},{...clip,id:'a'}]);}catch{rejected=true;}
+ assert(rejected&&!(await store.get('d'))&&(await store.get('a')).title===clip.title,'conflicting restore is atomic and preserves originals');
+ const restored=await readBackup(createBackup(await store.list()));assert(restored.length===3&&restored[0].title===clip.title,'storage and binary backup round trip');
+ const draft={id:'take',title:'录音 4',language:'zh-CN',created:Date.now(),duration:1,mime:'audio/webm',peaks:[]};
+ const release=await holdTake(draft.id);await store.appendDraft(draft,new Blob(['audio'],{type:draft.mime}),0);
+ assert((await store.recover()).length===0,'active-take lock prevents another tab recovering it');release();await new Promise(r=>setTimeout(r,20));
+ const recovered=await store.recover();assert(recovered.length===1&&recovered[0].title==='录音 4（已恢复）','interrupted draft recovers with Chinese name');assert((await store.recover()).length===0,'recovery is idempotent');
+ out.dataset.status='passed';out.textContent+='\nAll storage checks passed.';
+}catch(error){out.dataset.status='failed';out.textContent+='\nFAIL '+error.stack;}finally{store.db?.close();store.recovery?.close();indexedDB.deleteDatabase('memos-voice-recorder'+suffix);indexedDB.deleteDatabase('memos-voice-recorder-recovery'+suffix);}
+</script></body></html>

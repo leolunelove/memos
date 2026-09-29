@@ -11,10 +11,12 @@
   <meta property="og:title" content="Memos">
   <meta name="twitter:title" content="Memos">
   <meta name="description" content="A simple space to record. Choose your microphone, capture a thought, and export it as MP4. Recordings stay on your device.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./assets/icon-192.png">
   <link rel="icon" type="image/svg+xml" href="./assets/memos.svg">
-  <link rel="stylesheet" href="./app/styles.css?v=organized-1">
+  <link rel="stylesheet" href="./app/styles.css?v=memos-20260929">
   <script src="./vendor/ffmpeg/ffmpeg.js" defer></script>
-  <script src="./app/main.js?v=organized-1" type="module"></script>
+  <script src="./app/main.js?v=memos-20260929" type="module"></script>
 </head>
 <body>
 <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
@@ -33,11 +35,12 @@
 <div class="page">
   <header class="masthead">
     <a class="brand" href="./" aria-label="Memos home"><span class="brand-icon"><svg><use href="#i-wave"/></svg></span>memos<span class="brand-period">.</span></a>
-    <span class="local-note"><svg><use href="#i-lock"/></svg>Private. On your device.</span>
+    <div class="header-tools"><button id="settings-open" class="text-button" aria-haspopup="dialog">Settings</button><select id="language" aria-label="Language"><option value="en">English</option><option value="zh-CN">简体中文</option></select><span class="local-note"><svg><use href="#i-lock"/></svg>Private. On your device.</span></div>
   </header>
   <main class="app" aria-label="Voice recorder">
     <aside class="sidebar">
       <div class="sidebar-header"><h1>Recordings <span id="count">0</span></h1><button id="new" class="icon-button new-button" aria-label="New recording" title="New recording"><svg><use href="#i-plus"/></svg></button></div>
+      <input id="search" class="search" type="search" placeholder="Search recordings" aria-label="Search recordings" autocomplete="off"><p id="no-results" class="no-results" hidden>No matching recordings</p>
       <div id="recording-list" class="recording-list" aria-label="Saved recordings"></div>
       <div id="empty" class="empty-list"><span class="empty-icon"><svg><use href="#i-wave"/></svg></span><h2>No recordings yet</h2><p>A thought. An idea. A reminder.<br>Make room for your first one.</p></div>
       <div class="sidebar-footer"><svg><use href="#i-lock"/></svg><span>Saved in this browser</span></div>
@@ -47,6 +50,7 @@
         <div class="recording-heading"><div class="title-row"><input id="title" aria-label="Recording name" value="Recording 1" maxlength="100" autocomplete="off" spellcheck="false"><button id="rename" class="icon-button" aria-label="Rename recording" title="Rename recording"><svg><use href="#i-pencil"/></svg></button></div><p id="metadata">Not recorded yet</p></div>
         <button id="export" class="export-button" disabled><svg><use href="#i-download"/></svg><span>Export MP4</span></button>
       </div>
+      <div id="undo-bar" class="undo-bar" role="status" hidden><span>Recording deleted</span><button id="undo-delete" class="text-button">Undo</button></div>
       <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
       <div id="processing" class="processing" hidden>
         <div class="processing-copy"><span id="processing-label" role="status" aria-live="polite">Preparing audio…</span><progress id="processing-progress" max="100" aria-label="Audio processing progress"></progress></div>
@@ -80,16 +84,20 @@
         <div id="clip-actions" class="clip-actions" hidden><button id="quick-new" class="text-button"><svg><use href="#i-plus"/></svg>New recording</button><span aria-hidden="true">·</span><button id="trim-toggle" class="text-button" aria-expanded="false" aria-controls="trim-panel">Trim</button></div>
         <p id="recorder-hint" class="recorder-hint">Press record. Take your time.</p>
       </div>
+      <div id="playback-options" class="playback-options" hidden><label for="speed">Speed</label><select id="speed" aria-label="Playback speed"><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select><button id="share" class="text-button" hidden>Prepare to share</button></div>
+      <details id="adjustments" class="audio-adjustments" hidden><summary>Audio adjustments <span id="adjustments-status"></span></summary>
+        <label class="enhance-label"><input id="enhance" type="checkbox">Even out volume</label>
       <div class="effects-row">
         <label for="effect"><span aria-hidden="true">✦</span> Voice effect</label>
         <select id="effect" aria-describedby="effect-hint" disabled>
           <option value="none">Original</option>
-          <option value="tune">Light tune</option>
+          <option value="tune">Gentle pitch correction</option>
           <option value="deep">Deep voice</option>
           <option value="echo">Soft echo</option>
         </select>
         <span id="effect-hint">Try after recording</span>
       </div>
+      <p class="adjustments-note">Pitch correction works best on a single sung voice. Preview before exporting.</p></details>
       <div class="input-panel">
         <div class="microphone-icon"><svg><use href="#i-mic"/></svg></div>
         <div class="microphone-field"><label for="microphone">MICROPHONE</label><div class="select-wrap"><select id="microphone" aria-describedby="mic-hint"><option value="">System default</option><option value="__enable">Choose a microphone…</option></select><svg><use href="#i-chevron"/></svg></div></div>
@@ -102,7 +110,13 @@
   <p class="storage-note"><svg><use href="#i-lock"/></svg><span>Saved in this browser. No cloud backup. Export important recordings.</span></p>
 
 </div>
-<dialog id="delete-dialog"><form method="dialog"><div class="dialog-icon"><svg><use href="#i-trash"/></svg></div><h2>Delete this recording?</h2><p id="delete-message">This recording will be removed from this browser.</p><div class="dialog-actions"><button value="cancel">Keep recording</button><button value="delete" class="danger">Delete</button></div></form></dialog>
+<dialog id="delete-dialog" aria-labelledby="delete-heading"><form method="dialog"><div class="dialog-icon"><svg><use href="#i-trash"/></svg></div><h2 id="delete-heading">Delete this recording?</h2><p id="delete-message">This recording will be removed from this browser.</p><div class="dialog-actions"><button value="cancel">Keep recording</button><button value="delete" class="danger">Delete</button></div></form></dialog>
+<dialog id="settings-dialog" aria-labelledby="settings-heading"><div class="settings-heading"><h2 id="settings-heading">Settings</h2><button id="settings-close" class="text-button">Done</button></div>
+  <div class="settings-row"><label for="appearance">Appearance</label><select id="appearance"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+  <section class="settings-section"><h3>Library backup</h3><p>Save your original recordings and edits in one file.</p><details class="help-details"><summary>Backup details</summary><p>Backups include original audio, names, and edits. Keep the file somewhere safe. Restore adds missing recordings without replacing existing ones. Maximum file size: 512 MB.</p></details><div class="settings-buttons"><button id="backup" class="small-button">Back up all</button><button id="restore" class="text-button">Restore backup</button><input id="restore-file" type="file" accept=".memos" hidden></div><p id="storage-usage" role="status"></p></section>
+  <section class="settings-section"><h3>Recently deleted</h3><p>Recordings can be restored for 30 days.</p><div id="deleted-list"></div></section>
+  <section class="settings-section"><h3>Offline & home screen</h3><p id="offline-status" role="status">Preparing offline access…</p><button id="offline-download" class="small-button" disabled>Download offline exporter</button><button id="offline-cancel" class="text-button" hidden>Cancel</button><button id="install" class="text-button" hidden>Install Memos</button><details class="help-details"><summary>Installation & recording tips</summary><p>To add Memos to your home screen, use your browser’s Install option, or Share → Add to Home Screen on iPhone. Keep the app open while recording; phone interruptions can stop capture.</p></details></section>
+</dialog>
 <audio id="audio" preload="metadata"></audio>
 </body>
 </html>

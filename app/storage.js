@@ -34,6 +34,12 @@ export class RecordingStore{
     if(!this.recovery)return;
     const tx=this.recovery.transaction(['drafts','chunks'],'readwrite');tx.objectStore('drafts').delete(id);tx.objectStore('chunks').delete(chunkRange(id));await done(tx);
   }
+  async restoreMany(clips){
+    const tx=this.db.transaction("recordings","readwrite"), records=tx.objectStore("recordings");
+    const completed=done(tx);
+    try{for(const clip of clips)records.add(clip);}catch(error){tx.abort();await completed.catch(()=>{});throw error;}
+    await completed;
+  }
   async recover(){
     if(!this.recovery||!navigator.locks)return [];
     const drafts=await result(this.recovery.transaction('drafts').objectStore('drafts').getAll()),recovered=[];
@@ -47,7 +53,7 @@ export class RecordingStore{
         const blob=new Blob(chunks.map(chunk=>chunk.blob),{type:draft.mime});
         if(!blob.size)return;
         const {updated,...metadata}=draft;
-        const clip={...metadata,title:draft.title+' (recovered)',blob,recovered:true,effect:'none'};
+        const clip={...metadata,title:draft.title+(draft.language==='zh-CN'?'（已恢复）':' (recovered)'),blob,recovered:true,effect:'none'};
         await this.save(clip);await this.clearDraft(draft.id);recovered.push(clip);
       };
       if(navigator.locks){await navigator.locks.request('memos-take-'+draft.id,{ifAvailable:true},async lock=>{if(lock)await restore();});}

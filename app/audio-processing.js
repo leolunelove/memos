@@ -1,7 +1,7 @@
 import { applyVoiceEffect } from './effects.js';
 
 // Work on copies. The original recording is never rewritten.
-export function renderAudio(channels, sampleRate, effect='none', trim=null, progress=()=>{}) {
+export function renderAudio(channels, sampleRate, effect='none', trim=null, progress=()=>{}, enhance=false) {
   const length=channels[0]?.length||0;
   if(!length)throw new Error('This recording contains no audio');
   const start=Math.min(length-1,Math.max(0,Math.round((trim?.start||0)*sampleRate)));
@@ -12,6 +12,10 @@ export function renderAudio(channels, sampleRate, effect='none', trim=null, prog
     const mono=new Float32Array(end-start);
     for(const channel of output)for(let i=0;i<mono.length;i++)mono[i]+=channel[i]/output.length;
     output=[applyVoiceEffect(mono,sampleRate,effect)];
+  }
+  if(enhance){
+    progress('Evening out volume…');
+    output=evenVolume(output,sampleRate);
   }
   progress('Preparing edited audio…');
   const frames=output[0].length,count=output.length,bytes=frames*count*2;
@@ -31,7 +35,26 @@ export function renderAudio(channels, sampleRate, effect='none', trim=null, prog
 }
 if(typeof WorkerGlobalScope!=='undefined'&&self instanceof WorkerGlobalScope){
   self.onmessage=({data})=>{
-    try{const result=renderAudio(data.channels,data.sampleRate,data.effect,data.trim,label=>self.postMessage({progress:label}));self.postMessage(result,[result.buffer]);}
+    try{const result=renderAudio(data.channels,data.sampleRate,data.effect,data.trim,label=>self.postMessage({progress:label}),data.enhance);self.postMessage(result,[result.buffer]);}
     catch(error){self.postMessage({error:error.message});}
   };
+}
+
+// Linked-channel, slowly varying gain preserves the stereo image and leaves silence alone.
+export function evenVolume(channels,rate){
+  const output=channels.map(c=>c.slice()), window=Math.max(1,Math.round(rate*.05));
+  let gain=1;
+  for(let start=0;start<output[0].length;start+=window){
+    const end=Math.min(output[0].length,start+window);let sum=0,peak=0;
+    for(const c of channels)for(let i=start;i<end;i++){sum+=c[i]*c[i];peak=Math.max(peak,Math.abs(c[i]));}
+    const rms=Math.sqrt(sum/((end-start)*channels.length));
+    const target=rms<.008?1:Math.min(3,.15/rms,peak? .9/peak:1);
+    const next=gain+(target-gain)*(target<gain?.65:.18);
+    for(let i=start;i<end;i++){
+      const local=gain+(next-gain)*(i-start)/(end-start);
+      for(let ch=0;ch<channels.length;ch++)output[ch][i]=Math.max(-.95,Math.min(.95,channels[ch][i]*local));
+    }
+    gain=next;
+  }
+  return output;
 }

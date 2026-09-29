@@ -19,10 +19,16 @@ memos/
 ├── index.html
 ├── app/
 │   ├── main.js
+│   ├── i18n.js
+│   ├── library.js
+│   ├── offline.js
 │   ├── storage.js
 │   ├── effects.js
 │   ├── audio-processing.js
 │   └── styles.css
+├── sw.js
+├── manifest.webmanifest
+├── tests/
 ├── assets/
 │   └── memos.svg
 ├── docs/
@@ -39,11 +45,14 @@ memos/
 | `app/storage.js` | Saved recordings, chunk journaling, and interrupted-take recovery |
 | `app/effects.js` | Pitch correction, pitch shifting, and echo processing |
 | `app/audio-processing.js` | Worker-based trimming, waveform peaks, and WAV preparation |
+| `app/i18n.js` | English/Simplified Chinese strings, static labels, and preferences |
+| `app/library.js` | Validated binary library backups without base64 expansion |
+| `app/offline.js`, `sw.js` | Install controls and app/encoder caching, scoped to the deployment path |
 | `app/styles.css` | Shared visual styles and responsive layouts |
 
 ## Audio and storage
 
-The original recording blob remains unchanged. Trim boundaries and the selected effect are stored alongside it. Trim previews play the selected original segment; applying the trim prepares it with the selected effect.
+The original recording blob remains unchanged. Trim boundaries, volume enhancement, and the selected effect are stored alongside it. Trim previews play the selected original segment; applying the trim prepares it with the selected effect.
 
 Trim-only processing preserves channels at 48 kHz. Voice effects use mono audio at 24 kHz. The bundled encoder converts edited or non-MP4 audio to AAC in an MP4 container.
 
@@ -62,11 +71,23 @@ The directory is marked as vendored in `.gitattributes`, keeping dependency code
 GitHub Pages publishes **`main` → repository root**. `.nojekyll` keeps the files as a static site. No custom build workflow is needed.
 
 1. Review changes locally and complete the relevant checks below.
-2. Commit and push the complete change to `main`.
+2. Obtain approval of the local preview, then commit and push the complete change to `main`.
 3. Wait for **pages build and deployment** to succeed in [Actions](https://github.com/leolunelove/memos/actions).
 4. Open [the live app](https://leolunelove.github.io/memos/) and confirm that scripts, styles, workers, and export assets load.
 
 Keep paths relative to the app entry point or module, so the site works under `/memos/` as well as on localhost. Do not change the storage database names when reorganizing files.
+
+## Library and offline formats
+
+Deletion adds a `deletedAt` timestamp to the existing record; it does not immediately remove the blob. Active lists exclude tombstones. Restore removes the timestamp; startup purges tombstones older than 30 days.
+
+A `.memos` backup contains an eight-byte `MEMOS001` marker, a big-endian four-byte JSON-header length, UTF-8 versioned metadata, then consecutive audio blobs. Imports validate bounds, metadata, types, duplicate IDs, and edit ranges before a single atomic IndexedDB transaction adds missing IDs. A quota error or conflicting ID aborts the whole transaction.
+
+Offline shell and encoder caches are scoped by deployment path. Bump the shell version and HTML asset query versions whenever application files change. A new worker waits for existing tabs to close; do not force-activate it during a recording. Encoder files are cached when used or via the explicit offline download. No audio is stored in the service-worker cache or sent over the network.
+
+## Automated checks
+
+Run `node tests/refinements.mjs` for volume processing, original preservation, binary backup round trips, and malformed archives. Serve the repository and open `tests/storage.html` for isolated IndexedDB transaction and recovery checks. Test databases use random suffixes and are removed after completion.
 
 ## Verification checklist
 
@@ -80,7 +101,19 @@ Use synthetic or disposable test recordings, and keep them separate from real re
 - Cancel processing and export, then verify a retry succeeds.
 - Confirm storage failures leave the take available for export.
 - Check desktop and narrow phone layouts, keyboard controls, and console errors.
+- Switch languages in idle and playback states; preserve existing names and Chinese IME composition.
+- Delete/undo, reload Recently deleted, restore, and retain edit settings.
+- Search Chinese and English names; verify speed does not affect export duration.
+- Back up and restore without overwrites; reject malformed or oversized files and abort failed transactions.
+- Download offline assets, stop the server, reload, and export a saved take.
+- Follow the [physical-device test checklist](mobile-testing.md) before claiming phone interruption support.
 
 The recording and editing release was checked with isolated synthetic microphone audio, including WebM and native MP4 recovery, storage failures, cancellation/retry, and layouts at 390 px and 320 px. Decoded exports confirmed a four-second trim, the 0.39-second echo tail, and pitch correction of a 225 Hz tone to about 221 Hz. Physical iPhone recording and long-session stress tests have not been performed.
 
 [Back to the README](../README.md)
+
+## September 29 local preview validation
+
+The new local preview passed a 50-second synthetic WebM capture with pause/resume and chunk saving, combined light tuning/trim/volume enhancement, MP4 export, delete/undo, bilingual search, backup export and file-picker restore, cancellation/retry, and offline reload plus MP4 export with the server stopped. Storage checks covered atomic rollback, tombstones, active-take locks, and Chinese recovery names. A ten-minute synthetic PCM input passed volume processing and trim checks; this is not a ten-minute physical microphone test. A 320 px iframe checked Chinese playback layout without horizontal overflow.
+
+Physical phone calls, locking/background behavior, native share destinations, and home-screen installation remain device checks. Publication of this version was authorized on September 29, following the local preview. Physical-device checks remain explicitly unverified.

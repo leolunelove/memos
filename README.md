@@ -17,8 +17,11 @@
 ## Record, refine, export
 
 - **Record** with your preferred microphone. Pause, resume, and name each take.
-- **Refine** with reversible trimming and three optional voice effects: Light tune, Deep voice, and Soft echo.
+- **Refine** with reversible trimming, gentle volume enhancement, and three optional voice effects: Gentle pitch correction, Deep voice, and Soft echo.
 - **Export** your finished recording as an audio-only MP4, including its trim and effect.
+- **Make it yours.** Choose English or 简体中文, a light or dark appearance, and your playback speed.
+- **Stay organized.** Search recordings, undo deletion, and back up or restore your library.
+- **Take it offline.** Add Memos to your home screen and download the offline exporter in Settings.
 - **Keep the original.** Edits never replace the original audio. Saved chunks can help recover an interrupted take.
 
 ## Get started
@@ -30,7 +33,7 @@
 
 ## Your recordings
 
-Audio stays in this browser and is not uploaded. There is **no cloud backup**: clearing browser data or storage eviction can remove recordings. Export important takes.
+Audio stays in this browser and is not uploaded. There is **no cloud backup**: clearing browser data or storage eviction can remove recordings. Export important takes or save a library backup in **Settings**.
 
 Recovery restores audio chunks saved before an interruption; the final unsaved moments may be missing. Recordings do not transfer automatically between browsers, devices, or website addresses.
 
@@ -52,7 +55,9 @@ Open [localhost:8000](http://localhost:8000). No package installation or build s
 | --- | --- |
 | [`index.html`](index.html) | App layout and entry point |
 | [`app/`](app/) | Recorder, storage, audio processing, and styles |
-| [`assets/`](assets/) | Memos app icon |
+| [`assets/`](assets/) | Memos app icons |
+| [`manifest.webmanifest`](manifest.webmanifest), [`sw.js`](sw.js) | Home-screen installation and offline caching |
+| [`tests/`](tests/) | Audio, backup, and storage checks |
 | [`docs/`](docs/) | User guide and development notes |
 | [`vendor/ffmpeg/`](vendor/ffmpeg/) | Bundled MP4 encoder and dependency licenses |
 
