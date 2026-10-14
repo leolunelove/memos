@@ -62,3 +62,8 @@ html[data-palette] :focus-visible{outline-color:var(--red)}
   .header-tools select,.playback-options select{min-height:44px}
   .clip-actions{gap:8px}.transport{gap:14px}.delete-button{position:static;left:auto;right:auto}
 }
+
+/* A quiet creator credit and a readable release diary. */
+.product-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:12px;padding:0 3px;font-size:12px;color:var(--subtle)}
+.product-footer>a{display:inline-flex;align-items:center;min-height:44px;color:var(--subtle);text-decoration:none}.product-footer>a:hover{text-decoration:underline}.product-footer .text-button{color:var(--subtle);min-height:44px}
+#whats-new-dialog{max-width:480px;max-height:85dvh;overflow:auto}#whats-new-dialog form{margin:0}.diary-intro{font-size:13px;margin:15px 0 23px}.release-diary article{border-top:1px solid var(--border);padding:19px 0}.release-diary article:last-child{padding-bottom:0}.release-diary time{font-size:11px;color:var(--subtle)}.release-diary h3{font-size:15px;margin:8px 0;color:var(--text);font-weight:600}.release-diary p{font-size:13px;line-height:1.7;margin:0;color:var(--subtle)}

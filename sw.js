@@ -1,7 +1,7 @@
 // Bump this version whenever app files change. Activation waits for old tabs to close.
 const root=new URL('./',self.location.href),prefix='memos-shell-'+encodeURIComponent(root.pathname)+'-';
-const SHELL=prefix+'memos-20261014-taps-2',ENCODER='memos-encoder-v1-'+encodeURIComponent(root.pathname);
-const paths=['./','index.html','app/main.js?v=memos-20261014-taps-2','app/styles.css?v=memos-20261014-taps-2','app/i18n.js','app/library.js','app/offline.js','app/storage.js','app/audio-processing.js','app/effects.js','assets/memos.svg','assets/icon-192.png','assets/icon-512.png','manifest.webmanifest','vendor/ffmpeg/ffmpeg.js'];
+const SHELL=prefix+'memos-20261014-diary',ENCODER='memos-encoder-v1-'+encodeURIComponent(root.pathname);
+const paths=['./','index.html','app/main.js?v=memos-20261014-diary','app/styles.css?v=memos-20261014-diary','app/i18n.js','app/library.js','app/offline.js','app/storage.js','app/audio-processing.js','app/effects.js','assets/memos.svg','assets/icon-192.png','assets/icon-512.png','manifest.webmanifest','vendor/ffmpeg/ffmpeg.js'];
 const urls=paths.map(p=>new URL(p,root).href);
 self.addEventListener('install',event=>event.waitUntil(caches.open(SHELL).then(cache=>cache.addAll(urls))));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{for(const key of await caches.keys())if(key.startsWith(prefix)&&key!==SHELL)await caches.delete(key);await self.clients.claim();})()));

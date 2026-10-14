@@ -14,9 +14,9 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./assets/icon-192.png">
   <link rel="icon" type="image/svg+xml" href="./assets/memos.svg">
-  <link rel="stylesheet" href="./app/styles.css?v=memos-20261014-taps-2">
+  <link rel="stylesheet" href="./app/styles.css?v=memos-20261014-diary">
   <script src="./vendor/ffmpeg/ffmpeg.js" defer></script>
-  <script src="./app/main.js?v=memos-20261014-taps-2" type="module"></script>
+  <script src="./app/main.js?v=memos-20261014-diary" type="module"></script>
 </head>
 <body>
 <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
@@ -109,6 +109,7 @@
   </main>
   <p class="storage-note"><svg><use href="#i-lock"/></svg><span>Saved in this browser. No cloud backup. Export important recordings.</span></p>
 
+  <footer class="product-footer"><a href="https://leolune.com" target="_blank" rel="noopener noreferrer">Created by @leo</a><button id="whats-new-open" class="text-button" aria-haspopup="dialog" aria-controls="whats-new-dialog">What’s new</button></footer>
 </div>
 <dialog id="delete-dialog" aria-labelledby="delete-heading"><form method="dialog"><div class="dialog-icon"><svg><use href="#i-trash"/></svg></div><h2 id="delete-heading">Delete this recording?</h2><p id="delete-message">This recording will be removed from this browser.</p><div class="dialog-actions"><button value="cancel">Keep recording</button><button value="delete" class="danger">Delete</button></div></form></dialog>
 <dialog id="settings-dialog" aria-labelledby="settings-heading"><div class="settings-heading"><h2 id="settings-heading">Settings</h2><button id="settings-close" class="text-button">Done</button></div>
@@ -117,6 +118,7 @@
   <section class="settings-section"><h3>Recently deleted</h3><p>Recordings can be restored for 30 days.</p><div id="deleted-list"></div></section>
   <section class="settings-section"><h3>Offline & home screen</h3><p id="offline-status" role="status">Preparing offline access…</p><button id="offline-download" class="small-button" disabled>Download offline exporter</button><button id="offline-cancel" class="text-button" hidden>Cancel</button><button id="install" class="text-button" hidden>Install Memos</button><details class="help-details"><summary>Installation & recording tips</summary><p>To add Memos to your home screen, use your browser’s Install option, or Share → Add to Home Screen on iPhone. Keep the app open while recording; phone interruptions can stop capture.</p></details></section>
 </dialog>
+<dialog id="whats-new-dialog" aria-labelledby="whats-new-heading"><div class="settings-heading"><h2 id="whats-new-heading">What’s new</h2><form method="dialog"><button class="text-button">Done</button></form></div><p class="diary-intro">A small diary of the things that make Memos better.</p><div class="release-diary"><article><time datetime="2026-10-14">October 14, 2026</time><h3>More room to tap</h3><p>Secondary mobile buttons now have larger tap targets, with a roomier playback row on small screens.</p></article><article><time datetime="2026-10-14">October 14, 2026</time><h3>Four colours for your day</h3><p>Peach and Sea Glass bring a softer light appearance. Twilight and Aurora add colour after dark.</p></article><article><time datetime="2026-09-29">September 29, 2026</time><h3>A more useful little recorder</h3><p>English and Simplified Chinese, search, playback speed, volume enhancement, undo and Recently deleted, library backups, MP4 sharing, and offline support.</p></article><article><time datetime="2026-09-22">September 22, 2026</time><h3>The first chapter</h3><p>Memos arrived with microphone selection, recording, reversible trimming, optional voice effects, and local MP4 export.</p></article></div></dialog>
 <audio id="audio" preload="metadata"></audio>
 </body>
 </html>

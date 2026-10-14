@@ -187,7 +187,21 @@ export const zh = {
   "Pitch correction works best on a single sung voice. Preview before exporting.": "音高校正更适合单人清唱。导出前请先试听。",
   "Save your original recordings and edits in one file.": "将原始录音和编辑设置保存为一个文件。",
   "Backup details": "备份说明",
-  "Installation & recording tips": "安装与录音提示"
+  "Installation & recording tips": "安装与录音提示",
+  "Created by @leo": "由 @leo 创作",
+  "What’s new": "更新日志",
+  "A small diary of the things that make Memos better.": "记录 Memos 一点点变好的小日记。",
+  "October 14, 2026": "2026年10月14日",
+  "September 29, 2026": "2026年9月29日",
+  "September 22, 2026": "2026年9月22日",
+  "More room to tap": "点击更轻松",
+  "Secondary mobile buttons now have larger tap targets, with a roomier playback row on small screens.": "移动端辅助按钮的点击区域更大，小屏幕上的播放控件也更宽松。",
+  "Four colours for your day": "四种配色，陪伴每一天",
+  "Peach and Sea Glass bring a softer light appearance. Twilight and Aurora add colour after dark.": "蜜桃和海玻璃带来柔和的浅色外观，暮光和极光为深色界面增添色彩。",
+  "A more useful little recorder": "更实用的小录音机",
+  "English and Simplified Chinese, search, playback speed, volume enhancement, undo and Recently deleted, library backups, MP4 sharing, and offline support.": "支持英语和简体中文、搜索、播放速度、音量优化、撤销和最近删除、录音库备份、MP4 分享以及离线使用。",
+  "The first chapter": "第一篇",
+  "Memos arrived with microphone selection, recording, reversible trimming, optional voice effects, and local MP4 export.": "Memos 带来了麦克风选择、录音、可还原的裁剪、可选的声音效果和本地 MP4 导出。"
 };
 export function preference(key,fallback){try{return localStorage.getItem('memos-'+key)||fallback;}catch{return fallback;}}
 export function savePreference(key,value){try{localStorage.setItem('memos-'+key,value);}catch{}}

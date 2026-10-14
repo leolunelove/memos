@@ -356,6 +356,7 @@ function applyAppearance(){
 function storageUsage(){const size=[...clips,...deleted].reduce((n,c)=>n+c.blob.size,0)/1024/1024;$('storage-usage').textContent=t('{size} MB of recording audio in this browser',{size:new Intl.NumberFormat(language,{maximumFractionDigits:1}).format(size)});}
 $('settings-open').addEventListener('click',()=>{renderDeleted();storageUsage();$('settings-dialog').showModal();});
 $('settings-close').addEventListener('click',()=>$('settings-dialog').close());
+$('whats-new-open').addEventListener('click',()=>$('whats-new-dialog').showModal());
 $('appearance').addEventListener('change',event=>{if(event.target.matches('input[type=radio]')){savePreference('appearance',event.target.value);applyAppearance();}});
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyAppearance);
 $('language').addEventListener('change',async()=>{
