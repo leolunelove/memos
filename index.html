@@ -14,9 +14,9 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./assets/icon-192.png">
   <link rel="icon" type="image/svg+xml" href="./assets/memos.svg">
-  <link rel="stylesheet" href="./app/styles.css?v=memos-20260929">
+  <link rel="stylesheet" href="./app/styles.css?v=memos-20261006">
   <script src="./vendor/ffmpeg/ffmpeg.js" defer></script>
-  <script src="./app/main.js?v=memos-20260929" type="module"></script>
+  <script src="./app/main.js?v=memos-20261006" type="module"></script>
 </head>
 <body>
 <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
@@ -112,7 +112,7 @@
 </div>
 <dialog id="delete-dialog" aria-labelledby="delete-heading"><form method="dialog"><div class="dialog-icon"><svg><use href="#i-trash"/></svg></div><h2 id="delete-heading">Delete this recording?</h2><p id="delete-message">This recording will be removed from this browser.</p><div class="dialog-actions"><button value="cancel">Keep recording</button><button value="delete" class="danger">Delete</button></div></form></dialog>
 <dialog id="settings-dialog" aria-labelledby="settings-heading"><div class="settings-heading"><h2 id="settings-heading">Settings</h2><button id="settings-close" class="text-button">Done</button></div>
-  <div class="settings-row"><label for="appearance">Appearance</label><select id="appearance"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+  <fieldset id="appearance" class="theme-picker"><legend>Appearance</legend><div class="theme-grid"><label class="theme-choice"><input type="radio" name="appearance" value="peach"><span class="theme-swatch swatch-peach" aria-hidden="true"></span><span class="theme-name">Peach</span><small>Light</small></label><label class="theme-choice"><input type="radio" name="appearance" value="sea"><span class="theme-swatch swatch-sea" aria-hidden="true"></span><span class="theme-name">Sea Glass</span><small>Light</small></label><label class="theme-choice"><input type="radio" name="appearance" value="twilight"><span class="theme-swatch swatch-twilight" aria-hidden="true"></span><span class="theme-name">Twilight</span><small>Dark</small></label><label class="theme-choice"><input type="radio" name="appearance" value="aurora"><span class="theme-swatch swatch-aurora" aria-hidden="true"></span><span class="theme-name">Aurora</span><small>Dark</small></label></div></fieldset>
   <section class="settings-section"><h3>Library backup</h3><p>Save your original recordings and edits in one file.</p><details class="help-details"><summary>Backup details</summary><p>Backups include original audio, names, and edits. Keep the file somewhere safe. Restore adds missing recordings without replacing existing ones. Maximum file size: 512 MB.</p></details><div class="settings-buttons"><button id="backup" class="small-button">Back up all</button><button id="restore" class="text-button">Restore backup</button><input id="restore-file" type="file" accept=".memos" hidden></div><p id="storage-usage" role="status"></p></section>
   <section class="settings-section"><h3>Recently deleted</h3><p>Recordings can be restored for 30 days.</p><div id="deleted-list"></div></section>
   <section class="settings-section"><h3>Offline & home screen</h3><p id="offline-status" role="status">Preparing offline access…</p><button id="offline-download" class="small-button" disabled>Download offline exporter</button><button id="offline-cancel" class="text-button" hidden>Cancel</button><button id="install" class="text-button" hidden>Install Memos</button><details class="help-details"><summary>Installation & recording tips</summary><p>To add Memos to your home screen, use your browser’s Install option, or Share → Add to Home Screen on iPhone. Keep the app open while recording; phone interruptions can stop capture.</p></details></section>

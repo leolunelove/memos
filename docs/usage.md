@@ -42,7 +42,7 @@ Browsers that record MP4 can export the original directly. Other recordings and 
 
 Use **English / 简体中文** in the header to change language. On your first visit, Memos follows your browser language when Chinese is selected. Controls, feedback, dates, and new numbered recording names follow your choice; existing recording names stay unchanged.
 
-In **Settings → Appearance**, choose **System**, **Light**, or **Dark**. The system option follows your device. Language, appearance, and playback speed are remembered in this browser when local storage is available.
+In **Settings → Appearance**, choose one of four gradient palettes: **Peach** or **Sea Glass** (light), and **Twilight** or **Aurora** (dark). Language, appearance, and playback speed are remembered in this browser when local storage is available.
 
 Search by recording name above the library. Playback speed offers **0.75×, 1×, 1.5×, and 2×**. Open **Audio adjustments** and enable **Even out volume** for gentle, reversible leveling; it applies to playback and export and can be combined with effects. It is not noise removal, and very quiet noisy recordings can still sound noisy.
 
