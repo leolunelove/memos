@@ -52,3 +52,13 @@ html[data-palette] .record-button>span{background:#df404d}html[data-palette] .re
 html[data-palette] .state-label.active{color:#d63d4d}html[data-theme="dark"] .state-label.active{color:#ff9da7}
 html[data-palette] :focus-visible{outline-color:var(--red)}
 .theme-picker{border:0;padding:0;margin:25px 0 0;min-width:0}.theme-picker legend{font-size:14px;margin-bottom:12px;padding:0}.theme-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.theme-choice{position:relative;display:grid;grid-template-columns:1fr auto;gap:4px 8px;border:1px solid var(--border);border-radius:11px;padding:9px;cursor:pointer;background:var(--surface);font-size:12px}.theme-choice input{position:absolute;opacity:0;width:1px;height:1px}.theme-swatch{grid-column:1/-1;display:block;height:43px;border-radius:6px;border:1px solid #ffffff30}.swatch-peach{background:linear-gradient(120deg,#ffe3c9,#efcadc,#dcd6f5)}.swatch-sea{background:linear-gradient(120deg,#b8e6d2,#c5def2,#e3d6f3)}.swatch-twilight{background:linear-gradient(120deg,#524077,#363f6e,#854b73)}.swatch-aurora{background:linear-gradient(120deg,#256660,#2d506c,#575184)}.theme-name{font-weight:600}.theme-choice small{color:var(--subtle);font-size:11px}.theme-choice:has(input:checked){border-color:var(--red);box-shadow:0 0 0 1px var(--red)}.theme-choice:has(input:focus-visible){outline:3px solid var(--red);outline-offset:3px}.theme-picker:disabled{opacity:.5}.theme-choice:has(input:checked) .theme-swatch:after{content:'✓';display:grid;place-items:center;float:right;margin:7px;width:24px;height:24px;border-radius:50%;background:#fff;color:#35434a;font-weight:700}
+
+/* Roomier secondary controls on phones, with distinct, non-overlapping targets. */
+@media(max-width:720px){
+  .icon-button,.title-row .icon-button{width:44px;height:44px;min-width:44px;flex-shrink:0;border-radius:10px}
+  .icon-button svg{width:20px;height:20px}.title-row .icon-button svg{width:18px;height:18px}
+  .round-button{width:44px;height:44px;min-width:44px;flex-shrink:0}
+  .text-button,.small-button,.settings-section button{min-height:44px;min-width:44px}
+  .header-tools select,.playback-options select{min-height:44px}
+  .clip-actions{gap:8px}.transport{gap:14px}.delete-button{position:static;left:auto;right:auto}
+}
